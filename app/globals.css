@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+:root {
+  height: 100%;
+}
+ 
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    /* Emerald-600, a mesma cor usada em toda a marca (botões, e-mails,
+       certificado, checkout) — antes o token não batia com o que era
+       usado de verdade nas telas. */
+    --primary: 161 94% 30%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 161 40% 96%;
+    --secondary-foreground: 161 60% 18%;
+
+    --muted: 161 15% 96%;
+    --muted-foreground: 161 12% 40%;
+
+    --accent: 173 80% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 161 15% 90%;
+    --input: 161 15% 90%;
+    --ring: 161 94% 30%;
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 161 20% 6%;
+    --foreground: 161 10% 95%;
+
+    --card: 161 15% 10%;
+    --card-foreground: 161 10% 95%;
+
+    --popover: 161 15% 10%;
+    --popover-foreground: 161 10% 95%;
+
+    --primary: 161 70% 55%;
+    --primary-foreground: 161 60% 10%;
+
+    --secondary: 161 15% 15%;
+    --secondary-foreground: 161 10% 95%;
+
+    --muted: 161 10% 15%;
+    --muted-foreground: 161 10% 60%;
+
+    --accent: 173 40% 20%;
+    --accent-foreground: 173 70% 75%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 161 15% 15%;
+    --input: 161 15% 15%;
+    --ring: 161 70% 55%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.ql-container{
+  font-size: 16px !important;
+}
+
+@import "~@uploadthing/react/styles.css"
