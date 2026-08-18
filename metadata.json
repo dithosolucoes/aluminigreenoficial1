@@ -1,0 +1,8 @@
+{
+  "name": "Alumini Green LMS",
+  "description": "Plataforma de venda e consumo de cursos online",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

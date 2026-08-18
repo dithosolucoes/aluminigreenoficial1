@@ -1,0 +1,236 @@
+// Alumini Green — LMS
+// Banco: PostgreSQL (Railway em produção, qualquer Postgres em dev)
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------------------------------------------------------------------------
+// USUÁRIOS
+// ---------------------------------------------------------------------------
+// O `id` é o ID vindo do provedor de autenticação (Clerk em produção,
+// usuário semeado em modo mock). Todas as tabelas que guardavam `userId`
+// solto agora apontam para cá.
+
+model User {
+  id       String   @id
+  email    String   @unique
+  name     String
+  imageUrl String?
+  role     String   @default("STUDENT")
+
+  courses        Course[]
+  purchases      Purchase[]
+  progress       UserProgress[]
+  questions      Question[]
+  answers        Answer[]
+  stripeCustomer StripeCustomer?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// CATÁLOGO
+// ---------------------------------------------------------------------------
+
+model Course {
+  id          String  @id @default(uuid())
+  userId      String
+  author      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  imageUrl    String?
+  price       Float?
+  isPublished Boolean @default(false)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  chapters    Chapter[]
+  attachments Attachment[]
+  purchases   Purchase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([userId])
+}
+
+model Category {
+  id      String   @id @default(uuid())
+  name    String   @unique
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attachment {
+  id   String @id @default(uuid())
+  name String
+  url  String
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+model Chapter {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  videoUrl    String?
+  position    Int
+  isPublished Boolean @default(false)
+  isFree      Boolean @default(false)
+
+  videoAsset VideoAsset?
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  userProgress UserProgress[]
+  questions    Question[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+// ---------------------------------------------------------------------------
+// VÍDEO
+// ---------------------------------------------------------------------------
+// Neutro de fornecedor. Em produção `provider` = BUNNY e `assetId` é o GUID
+// do vídeo no Bunny Stream; `libraryId` é a Video Library. Em modo mock os
+// mesmos campos são preenchidos com valores falsos, então o resto do sistema
+// não percebe diferença.
+
+model VideoAsset {
+  id         String        @id @default(uuid())
+  provider   String        @default("MOCK")
+  assetId    String
+  playbackId String?
+  libraryId  String?
+  status     String        @default("PROCESSING")
+  durationMs Int?
+
+  chapterId String  @unique
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// PROGRESSO
+// ---------------------------------------------------------------------------
+
+model UserProgress {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  isCompleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, chapterId])
+  @@index([chapterId])
+}
+
+// ---------------------------------------------------------------------------
+// PAGAMENTOS
+// ---------------------------------------------------------------------------
+// `status` existe para que o fluxo mockado percorra o mesmo caminho do real:
+// PENDING no momento do checkout, PAID quando o webhook confirma.
+// Pix cai no Mercado Pago; cartão no Stripe. MANUAL = matrícula dada pelo
+// professor, sem cobrança.
+
+model Purchase {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  status       String          @default("PENDING")
+  provider     String          @default("MOCK")
+  method       String          @default("NONE")
+  amount       Float           @default(0)
+  externalId   String?
+  installments Int             @default(1)
+  paidAt       DateTime?
+
+  isSuspended Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([status])
+}
+
+model StripeCustomer {
+  id               String @id @default(uuid())
+  userId           String @unique
+  user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// DÚVIDAS NAS AULAS
+// ---------------------------------------------------------------------------
+
+model Question {
+  id      String @id @default(uuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content String
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  answers Answer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+}
+
+model Answer {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  isTeacher Boolean @default(false)
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([questionId])
+}
